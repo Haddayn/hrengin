@@ -123,17 +123,18 @@ image try_read(io::input_stream& stream)
 		png_get_gAMA(png_ptr, info_ptr, &image_gamma);
 	png_set_gamma(png_ptr, screen_gamma, image_gamma);
 
+	png_read_update_info(png_ptr, info_ptr);
 	auto row_bytes = png_get_rowbytes(png_ptr, info_ptr);
 	std::vector<std::byte> vec(height * row_bytes);
+	auto begin = reinterpret_cast<png_byte*>(vec.data());
 
 	std::vector<png_byte*> row_pointers;
 	for (int i = 0; i < height; ++i)
-		row_pointers.push_back(reinterpret_cast<png_byte*>(vec.data() + i*row_bytes));
+		row_pointers.push_back(begin + i*row_bytes);
 
 	if (setjmp(png_jmpbuf(png_ptr)))
 		throw std::runtime_error{"failed to read image"};
 
-	png_read_update_info(png_ptr, info_ptr);
 	png_read_image(png_ptr, row_pointers.data());
 	png_read_end(png_ptr, info_ptr);
 
